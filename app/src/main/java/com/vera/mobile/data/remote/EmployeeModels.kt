@@ -5,8 +5,12 @@ data class Employee(
     val full_name: String,
     val position: String?,
     val email: String?,
+    val rfc: String?,
+    val curp: String?,
+    val nss: String?,
+    val clabe: String?,
     val base_salary: Double,
     val periodicity: String,
-    val work_regime: String,
-    val is_active: Boolean // Cambiado de Int a Boolean para coincidir con JSON de Laravel
+    val work_regime: String?,
+    val is_active: Boolean
 )
