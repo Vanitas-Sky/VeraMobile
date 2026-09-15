@@ -18,12 +18,13 @@ import com.vera.mobile.data.remote.RetrofitClient
 import com.vera.mobile.data.repository.AuthRepository
 import com.vera.mobile.ui.employee.EmployeeViewModel
 import com.vera.mobile.ui.employee.EmployeesScreen
-import com.vera.mobile.ui.home.HomeScreen
+import com.vera.mobile.ui.home.DashboardScreen
 import com.vera.mobile.ui.home.HomeViewModel
 import com.vera.mobile.ui.login.LoginScreen
 import com.vera.mobile.ui.login.LoginViewModel
-import com.vera.mobile.ui.payroll.PayrollScreen
 import com.vera.mobile.ui.payroll.PayrollViewModel
+import com.vera.mobile.ui.payroll.PayrollsScreen
+import com.vera.mobile.ui.screens.MainScaffoldScreen
 import com.vera.mobile.ui.theme.VeraMobileTheme
 
 class MainActivity : ComponentActivity() {
@@ -42,50 +43,29 @@ class MainActivity : ComponentActivity() {
         setContent {
             VeraMobileTheme {
                 var isLoggedIn by remember { mutableStateOf(tokenManager.getToken() != null) }
-                var currentScreen by remember { mutableStateOf("home") }
 
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Box(modifier = Modifier.padding(innerPadding)) {
-                        if (isLoggedIn) {
-                            when (currentScreen) {
-                                "home" -> HomeScreen(
-                                    viewModel = homeViewModel,
-                                    onLogout = {
-                                        tokenManager.deleteToken()
-                                        isLoggedIn = false
-                                    },
-                                    onNavigateToPayroll = {
-                                        currentScreen = "payroll"
-                                    },
-                                    onNavigateToEmployees = {
-                                        currentScreen = "employees"
-                                    }
-                                )
-                                "payroll" -> PayrollScreen(
-                                    viewModel = payrollViewModel,
-                                    onBack = {
-                                        currentScreen = "home"
-                                    }
-                                )
-                                "employees" -> EmployeesScreen(
-                                    viewModel = employeeViewModel,
-                                    onBack = {
-                                        currentScreen = "home"
-                                    }
-                                )
+                if (isLoggedIn) {
+                    MainScaffoldScreen(
+                        token = tokenManager.getToken() ?: "",
+                        homeViewModel = homeViewModel,
+                        payrollViewModel = payrollViewModel,
+                        employeeViewModel = employeeViewModel,
+                        onLogout = {
+                            loginViewModel.logout {
+                                isLoggedIn = false
                             }
-                        } else {
-                            LoginScreen(
-                                viewModel = loginViewModel,
-                                onLoginSuccess = {
-                                    isLoggedIn = true
-                                    homeViewModel.loadDashboard()
-                                    payrollViewModel.loadPayrolls()
-                                    employeeViewModel.loadEmployees()
-                                }
-                            )
                         }
-                    }
+                    )
+                } else {
+                    LoginScreen(
+                        viewModel = loginViewModel,
+                        onLoginSuccess = {
+                            isLoggedIn = true
+                            homeViewModel.loadDashboard()
+                            payrollViewModel.loadPayrolls()
+                            employeeViewModel.loadEmployees()
+                        }
+                    )
                 }
             }
         }

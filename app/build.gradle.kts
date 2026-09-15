@@ -57,6 +57,10 @@ dependencies {
     // Security
     implementation(libs.androidx.security.crypto)
 
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:2.8.0")
+    implementation("androidx.compose.material:material-icons-extended")
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

@@ -1,6 +1,7 @@
 package com.vera.mobile.ui.payroll
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,61 +17,43 @@ import androidx.compose.ui.unit.sp
 import com.vera.mobile.data.remote.PayrollPeriod
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PayrollScreen(viewModel: PayrollViewModel, onBack: () -> Unit) {
+fun PayrollsScreen(viewModel: PayrollViewModel, onBack: () -> Unit, onSelectPeriod: (Int) -> Unit) {
     val uiState by viewModel.uiState
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Historial de Nóminas", color = Color.White, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        // Aquí podrías usar Icon(Icons.Default.ArrowBack, ...)
-                        // Por simplicidad usaremos texto o puedes importar iconos
-                        Text("<", color = Color.White, fontSize = 20.sp, modifier = Modifier.padding(8.dp))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0F172A))
-            )
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color(0xFFF8FAFC))
-                .padding(16.dp)
-        ) {
-            when (uiState) {
-                is PayrollUiState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                is PayrollUiState.Error -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(text = (uiState as PayrollUiState.Error).message, color = Color.Red)
-                        Button(onClick = { viewModel.loadPayrolls() }) {
-                            Text("Reintentar")
-                        }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8FAFC))
+            .padding(16.dp)
+    ) {
+        when (uiState) {
+            is PayrollUiState.Loading -> {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+            is PayrollUiState.Error -> {
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(text = (uiState as PayrollUiState.Error).message, color = Color.Red)
+                    Button(onClick = { viewModel.loadPayrolls() }) {
+                        Text("Reintentar")
                     }
                 }
-                is PayrollUiState.Success -> {
-                    val payrolls = (uiState as PayrollUiState.Success).payrolls
-                    if (payrolls.isEmpty()) {
-                        Text(
-                            text = "No hay nóminas calculadas aún.",
-                            color = Color.Gray,
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                    } else {
-                        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            items(payrolls) { payroll ->
-                                PayrollCard(payroll)
-                            }
+            }
+            is PayrollUiState.Success -> {
+                val payrolls = (uiState as PayrollUiState.Success).payrolls
+                if (payrolls.isEmpty()) {
+                    Text(
+                        text = "No hay nóminas calculadas aún.",
+                        color = Color.Gray,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        items(payrolls) { payroll ->
+                            PayrollCard(payroll = payroll, onClick = { onSelectPeriod(payroll.id) })
                         }
                     }
                 }
@@ -80,13 +63,15 @@ fun PayrollScreen(viewModel: PayrollViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-fun PayrollCard(payroll: PayrollPeriod) {
+fun PayrollCard(payroll: PayrollPeriod, onClick: () -> Unit) {
     val locale = Locale("es", "MX")
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(

@@ -25,4 +25,18 @@ class AuthRepository(
             Result.failure(e)
         }
     }
+
+    suspend fun logout(): Result<Unit> {
+        return try {
+            val token = tokenManager.getToken()
+            if (token != null) {
+                apiService.logout("Bearer $token")
+            }
+            tokenManager.deleteToken()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            tokenManager.deleteToken() // Igual borramos localmente
+            Result.failure(e)
+        }
+    }
 }

@@ -15,9 +15,8 @@ import com.vera.mobile.data.remote.DashboardSummaryResponse
 
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(
+fun DashboardScreen(
     viewModel: HomeViewModel,
     onLogout: () -> Unit,
     onNavigateToPayroll: () -> Unit,
@@ -25,68 +24,34 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Vera | Panel Financiero", color = Color.White, fontWeight = FontWeight.Bold) },
-                actions = {
-                    TextButton(onClick = onLogout) {
-                        Text("Salir", color = Color.White)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8FAFC))
+            .padding(16.dp)
+    ) {
+        when (uiState) {
+            is HomeUiState.Loading -> {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+            is HomeUiState.Error -> {
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = (uiState as HomeUiState.Error).message,
+                        color = Color.Red,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Button(onClick = { viewModel.loadDashboard() }) {
+                        Text("Reintentar")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0F172A)) // Color vera-dark
-            )
-        },
-        floatingActionButton = {
-            Column(horizontalAlignment = Alignment.End) {
-                ExtendedFloatingActionButton(
-                    onClick = onNavigateToEmployees,
-                    containerColor = Color(0xFF1E293B),
-                    contentColor = Color.White,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                ) {
-                    Text("Directorio")
-                }
-                ExtendedFloatingActionButton(
-                    onClick = onNavigateToPayroll,
-                    containerColor = Color(0xFF0F172A),
-                    contentColor = Color.White
-                ) {
-                    Text("Ver Nóminas")
                 }
             }
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color(0xFFF8FAFC))
-                .padding(16.dp)
-        ) {
-            when (uiState) {
-                is HomeUiState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                is HomeUiState.Error -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = (uiState as HomeUiState.Error).message,
-                            color = Color.Red,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                        Button(onClick = { viewModel.loadDashboard() }) {
-                            Text("Reintentar")
-                        }
-                    }
-                }
-                is HomeUiState.Success -> {
-                    val summary = (uiState as HomeUiState.Success).data
-                    DashboardContent(summary)
-                }
+            is HomeUiState.Success -> {
+                val summary = (uiState as HomeUiState.Success).data
+                DashboardContent(summary)
             }
         }
     }

@@ -16,32 +16,17 @@ import androidx.compose.ui.unit.sp
 import com.vera.mobile.data.remote.Employee
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EmployeesScreen(viewModel: EmployeeViewModel, onBack: () -> Unit) {
     val uiState by viewModel.uiState
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Directorio de Empleados", color = Color.White, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Text("<", color = Color.White, fontSize = 20.sp, modifier = Modifier.padding(8.dp))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0F172A))
-            )
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color(0xFFF8FAFC))
-                .padding(16.dp)
-        ) {
-            when (uiState) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8FAFC))
+            .padding(16.dp)
+    ) {
+        when (uiState) {
                 is EmployeeUiState.Loading -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
@@ -72,11 +57,9 @@ fun EmployeesScreen(viewModel: EmployeeViewModel, onBack: () -> Unit) {
                         }
                     }
                 }
-            }
         }
     }
 }
-
 @Composable
 fun EmployeeCard(employee: Employee) {
     val locale = Locale("es", "MX")
