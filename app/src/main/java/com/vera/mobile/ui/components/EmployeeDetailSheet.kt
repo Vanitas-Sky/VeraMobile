@@ -7,12 +7,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -120,7 +123,38 @@ fun EmployeeDetailSheet(employee: Employee, onDismiss: () -> Unit) {
             ) {
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("DISPERSIÓN BANCARIA", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8))
-                    InfoRow("CLABE / Cuenta", employee.clabe ?: "No registrada")
+                    
+                    val clipboardManager = LocalClipboardManager.current
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "CLABE / Cuenta", fontSize = 12.sp, color = Color(0xFF64748B))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = employee.clabe ?: "No registrada",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF0F172A)
+                            )
+                            if (!employee.clabe.isNullOrBlank()) {
+                                IconButton(
+                                    onClick = {
+                                        clipboardManager.setText(AnnotatedString(employee.clabe))
+                                    },
+                                    modifier = Modifier.size(24.dp).padding(start = 4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ContentCopy,
+                                        contentDescription = "Copiar CLABE",
+                                        tint = Color(0xFF64748B),
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

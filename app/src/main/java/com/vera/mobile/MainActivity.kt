@@ -38,6 +38,16 @@ class MainActivity : ComponentActivity() {
         setContent {
             VeraMobileTheme {
                 val tokenState by sessionManager.authToken.collectAsState(initial = "LOADING")
+                val scope = rememberCoroutineScope()
+
+                // Manejo de sesión expirada (401)
+                LaunchedEffect(Unit) {
+                    RetrofitClient.onUnauthorized = {
+                        scope.launch {
+                            sessionManager.clearAuthToken()
+                        }
+                    }
+                }
 
                 when (tokenState) {
                     "LOADING" -> {
@@ -49,7 +59,10 @@ class MainActivity : ComponentActivity() {
                         LoginScreen(
                             viewModel = loginViewModel,
                             onLoginSuccess = {
-                                homeViewModel.loadDashboard()
+                                val calendar = java.util.Calendar.getInstance()
+                                val monthFormatted = (calendar.get(java.util.Calendar.MONTH) + 1).toString().padStart(2, '0')
+                                val year = calendar.get(java.util.Calendar.YEAR)
+                                homeViewModel.loadDashboard(period = "$year-$monthFormatted")
                                 payrollViewModel.loadPayrolls()
                                 employeeViewModel.loadEmployees()
                             }
