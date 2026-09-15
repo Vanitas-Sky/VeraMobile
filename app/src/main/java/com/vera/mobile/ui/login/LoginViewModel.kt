@@ -24,6 +24,14 @@ class LoginViewModel(private val repository: AuthRepository) : ViewModel() {
             )
         }
     }
+
+    fun logout(onComplete: () -> Unit) {
+        viewModelScope.launch {
+            repository.logout()
+            _loginState.value = LoginResult.Idle
+            onComplete()
+        }
+    }
 }
 
 sealed class LoginResult {
