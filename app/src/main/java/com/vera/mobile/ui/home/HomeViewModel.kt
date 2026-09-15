@@ -9,6 +9,7 @@ import com.vera.mobile.data.remote.ApiService
 import com.vera.mobile.data.remote.DashboardSummaryResponse
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 sealed class HomeUiState {
     object Loading : HomeUiState()
@@ -25,10 +26,13 @@ class HomeViewModel(
     val uiState: State<HomeUiState> = _uiState
 
     init {
-        loadDashboard()
+        val calendar = Calendar.getInstance()
+        val monthFormatted = (calendar.get(Calendar.MONTH) + 1).toString().padStart(2, '0')
+        val year = calendar.get(Calendar.YEAR)
+        loadDashboard(period = "$year-$monthFormatted")
     }
 
-    fun loadDashboard() {
+    fun loadDashboard(period: String) {
         _uiState.value = HomeUiState.Loading
         viewModelScope.launch {
             try {
@@ -38,7 +42,10 @@ class HomeViewModel(
                     return@launch
                 }
 
-                val response = apiService.getDashboardSummary("Bearer $token")
+                val response = apiService.getDashboardSummary(
+                    token = "Bearer $token",
+                    period = period
+                )
                 if (response.isSuccessful && response.body() != null) {
                     _uiState.value = HomeUiState.Success(response.body()!!)
                 } else {

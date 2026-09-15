@@ -10,7 +10,8 @@ interface ApiService {
 
     @GET("dashboard/summary")
     suspend fun getDashboardSummary(
-        @Header("Authorization") token: String
+        @Header("Authorization") token: String,
+        @Query("period") period: String // formato "2026-09"
     ): Response<DashboardSummaryResponse>
 
     @GET("payrolls")
