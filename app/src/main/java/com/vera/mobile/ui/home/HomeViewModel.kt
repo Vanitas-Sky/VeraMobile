@@ -4,14 +4,21 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.vera.mobile.data.local.TokenManager
+import com.vera.mobile.data.local.SessionManager
 import com.vera.mobile.data.remote.ApiService
 import com.vera.mobile.data.remote.DashboardSummaryResponse
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+
+sealed class HomeUiState {
+    object Loading : HomeUiState()
+    data class Success(val data: DashboardSummaryResponse) : HomeUiState()
+    data class Error(val message: String) : HomeUiState()
+}
 
 class HomeViewModel(
     private val apiService: ApiService,
-    private val tokenManager: TokenManager
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     private val _uiState = mutableStateOf<HomeUiState>(HomeUiState.Loading)
@@ -22,15 +29,15 @@ class HomeViewModel(
     }
 
     fun loadDashboard() {
-        val token = tokenManager.getToken()
-        if (token == null) {
-            _uiState.value = HomeUiState.Error("Sesión expirada")
-            return
-        }
-
         _uiState.value = HomeUiState.Loading
         viewModelScope.launch {
             try {
+                val token = sessionManager.authToken.firstOrNull()
+                if (token == null) {
+                    _uiState.value = HomeUiState.Error("Sesión expirada")
+                    return@launch
+                }
+
                 val response = apiService.getDashboardSummary("Bearer $token")
                 if (response.isSuccessful && response.body() != null) {
                     _uiState.value = HomeUiState.Success(response.body()!!)
@@ -42,10 +49,4 @@ class HomeViewModel(
             }
         }
     }
-}
-
-sealed class HomeUiState {
-    object Loading : HomeUiState()
-    data class Success(val data: DashboardSummaryResponse) : HomeUiState()
-    data class Error(val message: String) : HomeUiState()
 }

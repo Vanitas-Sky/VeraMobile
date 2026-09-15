@@ -1,5 +1,6 @@
 package com.vera.mobile.data.remote
 
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -22,6 +23,14 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Path("id") periodId: Int
     ): Response<PayrollDetailResponse>
+
+    @Streaming
+    @GET("payrolls/{periodId}/employees/{employeeId}/pdf")
+    suspend fun downloadPayrollPdf(
+        @Header("Authorization") token: String,
+        @Path("periodId") periodId: Int,
+        @Path("employeeId") employeeId: Int
+    ): Response<ResponseBody>
 
     @GET("employees")
     suspend fun getEmployees(
