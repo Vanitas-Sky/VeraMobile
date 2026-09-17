@@ -38,6 +38,20 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Response<List<Employee>>
 
+    @GET("fixed-expenses")
+    suspend fun getFixedExpenses(
+        @Header("Authorization") token: String
+    ): Response<FixedExpensesResponse>
+
+    @GET("invoices")
+    suspend fun getInvoices(
+        @Header("Authorization") token: String,
+        @Query("period") period: String?,
+        @Query("type") type: String?,
+        @Query("status") status: String?,
+        @Query("search") search: String?
+    ): Response<InvoicesResponse>
+
     @POST("logout")
     suspend fun logout(@Header("Authorization") token: String): Response<Map<String, String>>
 
