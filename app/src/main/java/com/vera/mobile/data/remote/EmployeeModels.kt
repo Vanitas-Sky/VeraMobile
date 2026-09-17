@@ -5,6 +5,7 @@ data class Employee(
     val full_name: String,
     val position: String?,
     val email: String?,
+    val phone: String?,
     val rfc: String?,
     val curp: String?,
     val nss: String?,

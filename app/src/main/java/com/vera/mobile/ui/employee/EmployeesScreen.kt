@@ -63,7 +63,8 @@ fun EmployeesScreen(viewModel: EmployeeViewModel, onBack: () -> Unit) {
                     employees.filter { emp ->
                         val matchesQuery = emp.full_name.contains(searchQuery, ignoreCase = true) ||
                                 (emp.position?.contains(searchQuery, ignoreCase = true) == true) ||
-                                (emp.rfc?.contains(searchQuery, ignoreCase = true) == true)
+                                (emp.rfc?.contains(searchQuery, ignoreCase = true) == true) ||
+                                (emp.phone?.contains(searchQuery) == true)
 
                         val matchesStatus = when (filterStatus) {
                             "Activos" -> emp.is_active
