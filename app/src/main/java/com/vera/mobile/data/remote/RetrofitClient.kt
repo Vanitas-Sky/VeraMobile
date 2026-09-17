@@ -1,38 +1,40 @@
 package com.vera.mobile.data.remote
 
+import com.vera.mobile.data.local.SessionManager
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-    var onUnauthorized: (() -> Unit)? = null
-
-    private val logging = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
-    }
-
-    private val authInterceptor = Interceptor { chain ->
+    private val authErrorInterceptor = Interceptor { chain ->
         val request = chain.request()
         val response = chain.proceed(request)
 
+        // Si el backend devuelve 401, la sesión ya no es válida
         if (response.code == 401) {
-            onUnauthorized?.invoke()
+            SessionManager.notifySessionExpired()
         }
+
         response
     }
 
-    private val httpClient = OkHttpClient.Builder()
-        .addInterceptor(logging)
-        .addInterceptor(authInterceptor)
+    private val okHttpClient = OkHttpClient.Builder()
+        .addInterceptor(authErrorInterceptor)
+        .addInterceptor(HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        })
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
         .build()
 
     val apiService: ApiService by lazy {
         Retrofit.Builder()
             .baseUrl(ApiService.BASE_URL)
+            .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
-            .client(httpClient)
             .build()
             .create(ApiService::class.java)
     }

@@ -1,5 +1,6 @@
 package com.vera.mobile.ui.screens
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -10,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -25,6 +27,7 @@ import com.vera.mobile.ui.payroll.PayrollsScreen
 import com.vera.mobile.ui.payroll.PayrollViewModel
 import com.vera.mobile.ui.employee.EmployeesScreen
 import com.vera.mobile.ui.employee.EmployeeViewModel
+import com.vera.mobile.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,17 +102,28 @@ fun MainScaffoldScreen(
                     )
                 },
             bottomBar = {
-                NavigationBar(containerColor = Color.White) {
+                NavigationBar(
+                    containerColor = SurfaceWhite,
+                    tonalElevation = 0.dp,
+                    modifier = Modifier.border(width = 1.dp, color = BorderSubtle)
+                ) {
                     items.forEach { screen ->
                         val selected = currentDestination?.route == screen.route
                         NavigationBarItem(
                             icon = { Icon(screen.icon, contentDescription = screen.title) },
-                            label = { Text(screen.title) },
+                            label = {
+                                Text(
+                                    text = screen.title,
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
                             selected = selected,
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = Color(0xFF0F172A),
-                                selectedTextColor = Color(0xFF0F172A),
-                                indicatorColor = Color(0xFFE2E8F0)
+                                selectedIconColor = Slate900,
+                                selectedTextColor = Slate900,
+                                indicatorColor = EmeraldLight,
+                                unselectedIconColor = TextSecondary,
+                                unselectedTextColor = TextSecondary
                             ),
                             onClick = {
                                 navController.navigate(screen.route) {

@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -19,11 +20,12 @@ import com.vera.mobile.ui.login.LoginScreen
 import com.vera.mobile.ui.login.LoginViewModel
 import com.vera.mobile.ui.payroll.PayrollViewModel
 import com.vera.mobile.ui.screens.MainScaffoldScreen
-import com.vera.mobile.ui.theme.VeraMobileTheme
+import com.vera.mobile.ui.theme.VeraTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         
         val sessionManager = SessionManager(applicationContext)
@@ -34,15 +36,18 @@ class MainActivity : ComponentActivity() {
         val payrollViewModel = PayrollViewModel(apiService, sessionManager)
         val employeeViewModel = EmployeeViewModel(apiService, sessionManager)
 
-        enableEdgeToEdge()
         setContent {
-            VeraMobileTheme {
+            VeraTheme {
                 val tokenState by sessionManager.authToken.collectAsState(initial = "LOADING")
+                
+                // Mantener Splash Screen mientras carga el token
+                splashScreen.setKeepOnScreenCondition { tokenState == "LOADING" }
+
                 val scope = rememberCoroutineScope()
 
                 // Manejo de sesión expirada (401)
                 LaunchedEffect(Unit) {
-                    RetrofitClient.onUnauthorized = {
+                    SessionManager.sessionExpiredEvent.collect {
                         scope.launch {
                             sessionManager.clearAuthToken()
                         }
