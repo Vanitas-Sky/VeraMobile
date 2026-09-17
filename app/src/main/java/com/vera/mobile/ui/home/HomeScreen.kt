@@ -1,6 +1,7 @@
 package com.vera.mobile.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -30,7 +31,8 @@ fun DashboardScreen(
     viewModel: HomeViewModel,
     onLogout: () -> Unit,
     onNavigateToPayroll: () -> Unit,
-    onNavigateToEmployees: () -> Unit
+    onNavigateToEmployees: () -> Unit,
+    onNavigateToInvoices: () -> Unit
 ) {
     val uiState by viewModel.uiState
     val calendar = remember { Calendar.getInstance() }
@@ -87,7 +89,8 @@ fun DashboardScreen(
                     selectedYear = selectedYear,
                     monthNames = monthNames,
                     onMonthSelected = { selectedMonthIndex = it },
-                    onYearSelected = { selectedYear = it }
+                    onYearSelected = { selectedYear = it },
+                    onNavigateToInvoices = onNavigateToInvoices
                 )
             }
         }
@@ -101,7 +104,8 @@ fun DashboardContent(
     selectedYear: String,
     monthNames: List<String>,
     onMonthSelected: (Int) -> Unit,
-    onYearSelected: (String) -> Unit
+    onYearSelected: (String) -> Unit,
+    onNavigateToInvoices: () -> Unit
 ) {
     val mxLocale = remember { Locale("es", "MX") }
 
@@ -241,12 +245,26 @@ fun DashboardContent(
 
         // 5. Movimientos Recientes (Facturas)
         item {
-            Text(
-                text = "FACTURAS RECIENTES",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF94A3B8)
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToInvoices() },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "FACTURAS RECIENTES",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF94A3B8)
+                )
+                Text(
+                    text = "Ver bóveda →",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF0F172A)
+                )
+            }
         }
 
         if (data.recent_invoices.isEmpty()) {
