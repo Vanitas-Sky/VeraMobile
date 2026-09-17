@@ -1,0 +1,37 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 1. Triángulo Superior Central (Esmeralda Claro) -->
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M40,27 L68,27 L54,49 Z" />
+
+    <!-- 2. Ala Superior Izquierda (Azul Marino Oscuro) -->
+    <path
+        android:fillColor="#172033"
+        android:pathData="M40,27 L54,49 L24,49 Z" />
+
+    <!-- 3. Ala Superior Derecha (Azul Marino Oscuro Simétrico) -->
+    <path
+        android:fillColor="#172033"
+        android:pathData="M68,27 L84,49 L54,49 Z" />
+
+    <!-- 4. Cuerpo Inferior Izquierdo (Azul Profundo) -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M24,49 L54,49 L54,81 Z" />
+
+    <!-- 5. Columna Central Inferior (Verde Esmeralda) -->
+    <path
+        android:fillColor="#059669"
+        android:pathData="M45,49 L63,49 L54,81 Z" />
+
+    <!-- 6. Faceta Lateral Derecha (Gris Azulado / Sombra Slate) -->
+    <path
+        android:fillColor="#475569"
+        android:pathData="M63,49 L84,49 L54,81 Z" />
+
+</vector>

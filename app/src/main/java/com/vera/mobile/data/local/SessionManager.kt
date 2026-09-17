@@ -5,6 +5,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore by preferencesDataStore(name = "vera_session")
@@ -12,6 +14,13 @@ private val Context.dataStore by preferencesDataStore(name = "vera_session")
 class SessionManager(private val context: Context) {
     companion object {
         val TOKEN_KEY = stringPreferencesKey("auth_token")
+
+        private val _sessionExpiredEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+        val sessionExpiredEvent = _sessionExpiredEvent.asSharedFlow()
+
+        fun notifySessionExpired() {
+            _sessionExpiredEvent.tryEmit(Unit)
+        }
     }
 
     // Flujo para observar el token
