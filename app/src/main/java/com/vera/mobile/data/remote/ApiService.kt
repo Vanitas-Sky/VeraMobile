@@ -69,6 +69,11 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Response<AiSummaryResponse>
 
+    @GET("company/profile")
+    suspend fun getCompanyProfile(
+        @Header("Authorization") token: String
+    ): Response<ProfileResponse>
+
     @POST("logout")
     suspend fun logout(@Header("Authorization") token: String): Response<Map<String, String>>
 

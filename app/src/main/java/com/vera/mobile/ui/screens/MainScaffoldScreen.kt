@@ -5,9 +5,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -61,6 +60,13 @@ fun MainScaffoldScreen(
                 onBack = { currentSecondaryScreen = null }
             )
         }
+        "profile" -> {
+            ProfileScreen(
+                token = token,
+                onBack = { currentSecondaryScreen = null },
+                onLogout = onLogout
+            )
+        }
         "fixed_expenses" -> {
             FixedExpensesScreen(
                 token = token,
@@ -88,13 +94,6 @@ fun MainScaffoldScreen(
                             },
                             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0F172A)),
                             actions = {
-                                IconButton(onClick = { currentSecondaryScreen = "ai_chat" }) {
-                                    Icon(
-                                        imageVector = Icons.Default.AutoAwesome,
-                                        contentDescription = "Consultor Vera AI",
-                                        tint = Color(0xFF34D399)
-                                    )
-                                }
                                 IconButton(onClick = { currentSecondaryScreen = "invoices" }) {
                                     Icon(
                                         imageVector = Icons.Default.Folder,
@@ -109,10 +108,10 @@ fun MainScaffoldScreen(
                                         tint = Color.White
                                     )
                                 }
-                                IconButton(onClick = onLogout) {
+                                IconButton(onClick = { currentSecondaryScreen = "profile" }) {
                                     Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                                        contentDescription = "Cerrar Sesión",
+                                        imageVector = Icons.Default.AccountCircle,
+                                        contentDescription = "Perfil y Configuración",
                                         tint = Color.White
                                     )
                                 }
