@@ -1,6 +1,7 @@
 package com.vera.mobile.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,6 +24,7 @@ import com.vera.mobile.data.remote.InvoiceItem
 import com.vera.mobile.data.remote.InvoicesResponse
 import com.vera.mobile.data.remote.RetrofitClient
 import com.vera.mobile.ui.components.DropdownFilterSelector
+import com.vera.mobile.ui.components.InvoiceDetailSheet
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Locale
@@ -47,6 +49,7 @@ fun InvoicesScreen(
     var data by remember { mutableStateOf<InvoicesResponse?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var isRefreshing by remember { mutableStateOf(false) }
+    var selectedInvoiceId by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
     val locale = remember { Locale("es", "MX") }
 
@@ -245,23 +248,37 @@ fun InvoicesScreen(
                         }
                     } else {
                         items(invoiceList) { inv ->
-                            InvoiceDetailCard(inv, locale)
+                            InvoiceDetailCard(
+                                inv = inv,
+                                locale = locale,
+                                onClick = { selectedInvoiceId = inv.id }
+                            )
                         }
                     }
                 }
             }
         }
     }
+
+    selectedInvoiceId?.let { id ->
+        InvoiceDetailSheet(
+            token = token,
+            invoiceId = id,
+            onDismiss = { selectedInvoiceId = null }
+        )
+    }
 }
 
 @Composable
-fun InvoiceDetailCard(inv: InvoiceItem, locale: Locale) {
+fun InvoiceDetailCard(inv: InvoiceItem, locale: Locale, onClick: () -> Unit) {
     val isIngreso = inv.type.equals("I", ignoreCase = true)
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(10.dp),
         elevation = CardDefaults.cardElevation(1.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier

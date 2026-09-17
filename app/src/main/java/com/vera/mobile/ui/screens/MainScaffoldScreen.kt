@@ -4,11 +4,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -45,40 +47,57 @@ fun MainScaffoldScreen(
         Screen.Employees
     )
 
-    if (currentSecondaryScreen == "fixed_expenses") {
-        FixedExpensesScreen(
-            token = token,
-            onBack = { currentSecondaryScreen = null }
-        )
-    } else if (currentSecondaryScreen == "invoices") {
-        InvoicesScreen(
-            token = token,
-            onBack = { currentSecondaryScreen = null }
-        )
-    } else {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("Vera Pocket", fontWeight = FontWeight.Bold, color = Color.White) },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0F172A)),
-                    actions = {
-                        IconButton(onClick = { currentSecondaryScreen = "fixed_expenses" }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
-                                contentDescription = "Servicios y Rentas",
-                                tint = Color.White
+    when (currentSecondaryScreen) {
+        "fixed_expenses" -> {
+            FixedExpensesScreen(
+                token = token,
+                onBack = { currentSecondaryScreen = null }
+            )
+        }
+        "invoices" -> {
+            InvoicesScreen(
+                token = token,
+                onBack = { currentSecondaryScreen = null }
+            )
+        }
+        else -> {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                "Vera Pocket",
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                fontSize = 18.sp
                             )
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0F172A)),
+                        actions = {
+                            IconButton(onClick = { currentSecondaryScreen = "invoices" }) {
+                                Icon(
+                                    imageVector = Icons.Default.Folder,
+                                    contentDescription = "Bóveda de Facturas",
+                                    tint = Color.White
+                                )
+                            }
+                            IconButton(onClick = { currentSecondaryScreen = "fixed_expenses" }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
+                                    contentDescription = "Servicios y Rentas",
+                                    tint = Color.White
+                                )
+                            }
+                            IconButton(onClick = onLogout) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                    contentDescription = "Cerrar Sesión",
+                                    tint = Color.White
+                                )
+                            }
                         }
-                        IconButton(onClick = onLogout) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                                contentDescription = "Cerrar Sesión",
-                                tint = Color.White
-                            )
-                        }
-                    }
-                )
-            },
+                    )
+                },
             bottomBar = {
                 NavigationBar(containerColor = Color.White) {
                     items.forEach { screen ->
@@ -149,4 +168,5 @@ fun MainScaffoldScreen(
             }
         }
     }
+}
 }

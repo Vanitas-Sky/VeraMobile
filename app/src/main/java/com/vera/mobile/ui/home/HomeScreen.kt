@@ -202,6 +202,7 @@ fun DashboardContent(
         // 3. Tarjetas Cuadrículas: Ingresos, Gastos y Retiros
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                // Fila 1: Ingresos y Gastos
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     MetricCard(
                         title = "Ingresos Totales",
@@ -218,13 +219,24 @@ fun DashboardContent(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                MetricCard(
-                    title = "Retiros Bancarios",
-                    amount = data.bank_withdrawals,
-                    subtitle = "Salidas totales de banco",
-                    locale = mxLocale,
-                    modifier = Modifier.fillMaxWidth()
-                )
+
+                // Fila 2: Nómina Bruta y Retiros Bancarios
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MetricCard(
+                        title = "Nómina Operativa",
+                        amount = data.total_payroll_gross,
+                        subtitle = "Percepciones brutas",
+                        locale = mxLocale,
+                        modifier = Modifier.weight(1f)
+                    )
+                    MetricCard(
+                        title = "Retiros Bancarios",
+                        amount = data.bank_withdrawals,
+                        subtitle = "Salidas bancarias",
+                        locale = mxLocale,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
 

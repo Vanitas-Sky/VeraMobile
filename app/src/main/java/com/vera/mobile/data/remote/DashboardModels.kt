@@ -8,6 +8,7 @@ data class DashboardSummaryResponse(
     val total_income: Double,
     val total_expense: Double,
     val bank_withdrawals: Double,
+    val total_payroll_gross: Double = 0.0,
     val discrepancy: Double,
     val missing_invoices_amount: Double,
     val alerts: List<DashboardAlert>,
