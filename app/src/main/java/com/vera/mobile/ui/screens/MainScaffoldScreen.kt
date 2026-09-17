@@ -1,10 +1,13 @@
 package com.vera.mobile.ui.screens
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,6 +31,7 @@ import com.vera.mobile.ui.payroll.PayrollViewModel
 import com.vera.mobile.ui.employee.EmployeesScreen
 import com.vera.mobile.ui.employee.EmployeeViewModel
 import com.vera.mobile.ui.theme.*
+import com.vera.mobile.ui.components.VeraAiFab
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,6 +55,12 @@ fun MainScaffoldScreen(
     )
 
     when (currentSecondaryScreen) {
+        "ai_chat" -> {
+            AiConsultantScreen(
+                token = token,
+                onBack = { currentSecondaryScreen = null }
+            )
+        }
         "fixed_expenses" -> {
             FixedExpensesScreen(
                 token = token,
@@ -66,84 +76,103 @@ fun MainScaffoldScreen(
         else -> {
             Scaffold(
                 topBar = {
-                    TopAppBar(
-                        title = {
-                            Text(
-                                "Vera Pocket",
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                fontSize = 18.sp
-                            )
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0F172A)),
-                        actions = {
-                            IconButton(onClick = { currentSecondaryScreen = "invoices" }) {
-                                Icon(
-                                    imageVector = Icons.Default.Folder,
-                                    contentDescription = "Bóveda de Facturas",
-                                    tint = Color.White
-                                )
-                            }
-                            IconButton(onClick = { currentSecondaryScreen = "fixed_expenses" }) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
-                                    contentDescription = "Servicios y Rentas",
-                                    tint = Color.White
-                                )
-                            }
-                            IconButton(onClick = onLogout) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                                    contentDescription = "Cerrar Sesión",
-                                    tint = Color.White
-                                )
-                            }
-                        }
-                    )
-                },
-            bottomBar = {
-                NavigationBar(
-                    containerColor = SurfaceWhite,
-                    tonalElevation = 0.dp,
-                    modifier = Modifier.border(width = 1.dp, color = BorderSubtle)
-                ) {
-                    items.forEach { screen ->
-                        val selected = currentDestination?.route == screen.route
-                        NavigationBarItem(
-                            icon = { Icon(screen.icon, contentDescription = screen.title) },
-                            label = {
+                    if (currentSecondaryScreen != "ai_chat") {
+                        TopAppBar(
+                            title = {
                                 Text(
-                                    text = screen.title,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                    "Vera Pocket",
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    fontSize = 18.sp
                                 )
                             },
-                            selected = selected,
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = Slate900,
-                                selectedTextColor = Slate900,
-                                indicatorColor = EmeraldLight,
-                                unselectedIconColor = TextSecondary,
-                                unselectedTextColor = TextSecondary
-                            ),
-                            onClick = {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
+                            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0F172A)),
+                            actions = {
+                                IconButton(onClick = { currentSecondaryScreen = "ai_chat" }) {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = "Consultor Vera AI",
+                                        tint = Color(0xFF34D399)
+                                    )
+                                }
+                                IconButton(onClick = { currentSecondaryScreen = "invoices" }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Folder,
+                                        contentDescription = "Bóveda de Facturas",
+                                        tint = Color.White
+                                    )
+                                }
+                                IconButton(onClick = { currentSecondaryScreen = "fixed_expenses" }) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
+                                        contentDescription = "Servicios y Rentas",
+                                        tint = Color.White
+                                    )
+                                }
+                                IconButton(onClick = onLogout) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                        contentDescription = "Cerrar Sesión",
+                                        tint = Color.White
+                                    )
                                 }
                             }
                         )
                     }
+                },
+                floatingActionButton = {
+                    if (currentSecondaryScreen != "ai_chat") {
+                        VeraAiFab(
+                            onClick = { currentSecondaryScreen = "ai_chat" }
+                        )
+                    }
+                },
+                bottomBar = {
+                    if (currentSecondaryScreen == null) {
+                        NavigationBar(
+                            containerColor = SurfaceWhite,
+                            tonalElevation = 0.dp,
+                            modifier = Modifier.border(width = 1.dp, color = BorderSubtle)
+                        ) {
+                            items.forEach { screen ->
+                                val selected = currentDestination?.route == screen.route
+                                NavigationBarItem(
+                                    icon = { Icon(screen.icon, contentDescription = screen.title) },
+                                    label = {
+                                        Text(
+                                            text = screen.title,
+                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    },
+                                    selected = selected,
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = Slate900,
+                                        selectedTextColor = Slate900,
+                                        indicatorColor = EmeraldLight,
+                                        unselectedIconColor = TextSecondary,
+                                        unselectedTextColor = TextSecondary
+                                    ),
+                                    onClick = {
+                                        navController.navigate(screen.route) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
-            }
-        ) { innerPadding ->
-            NavHost(
-                navController = navController,
-                startDestination = Screen.Dashboard.route,
-                modifier = Modifier.padding(innerPadding)
-            ) {
+            ) { innerPadding ->
+                Box(modifier = Modifier.padding(innerPadding)) {
+                    NavHost(
+                        navController = navController,
+                        startDestination = Screen.Dashboard.route,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
                 composable(Screen.Dashboard.route) {
                     DashboardScreen(
                         viewModel = homeViewModel,
@@ -182,5 +211,6 @@ fun MainScaffoldScreen(
             }
         }
     }
+}
 }
 }

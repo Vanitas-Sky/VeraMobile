@@ -58,6 +58,17 @@ interface ApiService {
         @Path("id") id: Int
     ): Response<InvoiceDetailResponse>
 
+    @POST("ai/ask")
+    suspend fun askAi(
+        @Header("Authorization") token: String,
+        @Body request: AiAskRequest
+    ): Response<AiAskResponse>
+
+    @GET("ai/summary")
+    suspend fun getAiSummary(
+        @Header("Authorization") token: String
+    ): Response<AiSummaryResponse>
+
     @POST("logout")
     suspend fun logout(@Header("Authorization") token: String): Response<Map<String, String>>
 
