@@ -52,6 +52,12 @@ interface ApiService {
         @Query("search") search: String?
     ): Response<InvoicesResponse>
 
+    @GET("invoices/{id}")
+    suspend fun getInvoiceDetail(
+        @Header("Authorization") token: String,
+        @Path("id") id: Int
+    ): Response<InvoiceDetailResponse>
+
     @POST("logout")
     suspend fun logout(@Header("Authorization") token: String): Response<Map<String, String>>
 
