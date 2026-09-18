@@ -19,3 +19,12 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Mantener intactos los modelos de datos que se comunican con Laravel
+-keep class com.vera.mobile.data.remote.** { *; }
+-keepclassmembers class com.vera.mobile.data.remote.** { *; }
+
+# Soporte para Retrofit y Gson
+-keepattributes Signature, *Annotation*
+-dontwarn okhttp3.**
+-dontwarn retrofit2.**
