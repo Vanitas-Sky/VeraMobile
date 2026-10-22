@@ -17,5 +17,19 @@ data class LoginResponse(
 data class User(
     val id: Int,
     val name: String,
+    val email: String,
+    val role: String? = null,
+    @SerializedName("is_auditor") val isAuditor: Boolean = false
+)
+
+// Modelos para recuperación de contraseña móvil
+data class ForgotPasswordRequest(
     val email: String
+)
+
+data class ResetPasswordRequest(
+    val email: String,
+    val token: String,
+    val password: String,
+    @SerializedName("password_confirmation") val passwordConfirmation: String
 )

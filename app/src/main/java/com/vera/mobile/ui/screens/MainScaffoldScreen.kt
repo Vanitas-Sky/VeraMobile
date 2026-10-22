@@ -39,7 +39,8 @@ fun MainScaffoldScreen(
     homeViewModel: HomeViewModel,
     payrollViewModel: PayrollViewModel,
     employeeViewModel: EmployeeViewModel,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    isAuditor: Boolean = false
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -70,7 +71,8 @@ fun MainScaffoldScreen(
         "fixed_expenses" -> {
             FixedExpensesScreen(
                 token = token,
-                onBack = { currentSecondaryScreen = null }
+                onBack = { currentSecondaryScreen = null },
+                isAuditor = isAuditor
             )
         }
         "invoices" -> {

@@ -23,14 +23,23 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vera.mobile.R
+import com.vera.mobile.data.remote.ApiService
+import com.vera.mobile.data.remote.RetrofitClient
+import com.vera.mobile.ui.components.ForgotPasswordDialog
 import com.vera.mobile.ui.theme.*
 
 @Composable
-fun LoginScreen(viewModel: LoginViewModel, onLoginSuccess: () -> Unit) {
+fun LoginScreen(
+    viewModel: LoginViewModel,
+    onLoginSuccess: () -> Unit,
+    apiService: ApiService = RetrofitClient.apiService
+) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    val loginState by viewModel.loginState
+    var showForgotPasswordDialog by remember { mutableStateOf(false) }
+
+    val loginState by viewModel.loginState.collectAsState()
 
     Box(
         modifier = Modifier
@@ -70,7 +79,7 @@ fun LoginScreen(viewModel: LoginViewModel, onLoginSuccess: () -> Unit) {
                 letterSpacing = 1.sp
             )
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
             // Campos de Entrada
             OutlinedTextField(
@@ -124,7 +133,15 @@ fun LoginScreen(viewModel: LoginViewModel, onLoginSuccess: () -> Unit) {
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            // Botón "¿Olvidaste tu contraseña?"
+            TextButton(
+                onClick = { showForgotPasswordDialog = true },
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text("¿Olvidaste tu contraseña?", fontSize = 12.sp, color = Color(0xFF64748B))
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Botón de Acceso
             Button(
@@ -132,7 +149,7 @@ fun LoginScreen(viewModel: LoginViewModel, onLoginSuccess: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                enabled = loginState !is LoginResult.Loading && email.isNotBlank() && password.isNotBlank(),
+                enabled = loginState !is AuthUiState.Loading && email.isNotBlank() && password.isNotBlank(),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = EmeraldPrimary,
@@ -140,7 +157,7 @@ fun LoginScreen(viewModel: LoginViewModel, onLoginSuccess: () -> Unit) {
                 ),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
             ) {
-                if (loginState is LoginResult.Loading) {
+                if (loginState is AuthUiState.Loading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
                         color = Color.White,
@@ -157,10 +174,10 @@ fun LoginScreen(viewModel: LoginViewModel, onLoginSuccess: () -> Unit) {
             }
 
             // Mensajes de Error
-            if (loginState is LoginResult.Error) {
+            if (loginState is AuthUiState.Error) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = (loginState as LoginResult.Error).message,
+                    text = (loginState as AuthUiState.Error).message,
                     color = RedDanger,
                     fontSize = 13.sp,
                     textAlign = TextAlign.Center,
@@ -169,7 +186,18 @@ fun LoginScreen(viewModel: LoginViewModel, onLoginSuccess: () -> Unit) {
                 )
             }
         }
-        
+
+        // Modal de recuperación de contraseña
+        if (showForgotPasswordDialog) {
+            ForgotPasswordDialog(
+                apiService = apiService,
+                onDismiss = { showForgotPasswordDialog = false },
+                onPasswordResetSuccess = {
+                    showForgotPasswordDialog = false
+                }
+            )
+        }
+
         // Footer o versión
         Text(
             text = "v1.0.0 • Vera Technology",
@@ -183,7 +211,7 @@ fun LoginScreen(viewModel: LoginViewModel, onLoginSuccess: () -> Unit) {
     }
 
     // Efecto de Navegación
-    if (loginState is LoginResult.Success) {
+    if (loginState is AuthUiState.Success) {
         LaunchedEffect(Unit) {
             onLoginSuccess()
         }

@@ -1,81 +1,108 @@
 package com.vera.mobile.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.vera.mobile.data.remote.FixedExpenseAlert
-import com.vera.mobile.data.remote.FixedExpenseModel
+import com.vera.mobile.data.local.SessionManager
+import com.vera.mobile.data.remote.ApiService
+import com.vera.mobile.data.remote.FixedExpenseCreateRequest
+import com.vera.mobile.data.remote.FixedExpenseItem
 import com.vera.mobile.data.remote.FixedExpensesResponse
 import com.vera.mobile.data.remote.RetrofitClient
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import java.text.NumberFormat
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FixedExpensesScreen(
-    token: String,
-    onBack: () -> Unit
+    token: String = "",
+    onBack: () -> Unit = {},
+    isAuditor: Boolean = false,
+    apiService: ApiService = RetrofitClient.apiService,
+    sessionManager: SessionManager? = null
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val currencyFormat = NumberFormat.getCurrencyInstance(Locale("es", "MX"))
+
+    val isAuditorState by sessionManager?.isAuditor?.collectAsState(initial = isAuditor) ?: remember { mutableStateOf(isAuditor) }
+
     var data by remember { mutableStateOf<FixedExpensesResponse?>(null) }
     var isLoading by remember { mutableStateOf(true) }
-    var isRefreshing by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") }
-    var filterStatus by remember { mutableStateOf("Activos") }
-    val scope = rememberCoroutineScope()
-    val locale = remember { Locale("es", "MX") }
 
-    val fetchData: () -> Unit = {
-        scope.launch {
+    // Estados para modales
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var expenseToEdit by remember { mutableStateOf<FixedExpenseItem?>(null) }
+    var expenseToToggle by remember { mutableStateOf<FixedExpenseItem?>(null) }
+
+    // Filtros
+    var selectedStatusFilter by remember { mutableStateOf("TODOS") } // "TODOS", "ACTIVOS", "INACTIVOS"
+    var selectedCategoryFilter by remember { mutableStateOf("TODAS") } // "TODAS", "SERVICIO", "RENTA", "SEGURO", "OTRO"
+
+    fun loadData() {
+        coroutineScope.launch {
+            isLoading = true
+            val authToken = if (token.isNotBlank()) token else sessionManager?.authToken?.firstOrNull() ?: ""
+            if (authToken.isBlank()) {
+                isLoading = false
+                return@launch
+            }
             try {
-                val res = RetrofitClient.apiService.getFixedExpenses("Bearer $token")
+                val res = apiService.getFixedExpenses("Bearer $authToken")
                 if (res.isSuccessful) {
                     data = res.body()
+                } else {
+                    Toast.makeText(context, "Error al cargar OpEx", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Toast.makeText(context, "Fallo de conexión", Toast.LENGTH_SHORT).show()
             } finally {
                 isLoading = false
-                isRefreshing = false
             }
         }
     }
 
     LaunchedEffect(Unit) {
-        fetchData()
+        loadData()
     }
 
-    val filteredList = remember(searchQuery, filterStatus, data) {
+    // Filtrado de la lista en memoria
+    val filteredExpenses = remember(data?.expenses, selectedStatusFilter, selectedCategoryFilter) {
         val list = data?.expenses ?: emptyList()
-        list.filter { exp ->
-            val matchQuery = exp.provider_name.contains(searchQuery, ignoreCase = true) ||
-                    exp.category.contains(searchQuery, ignoreCase = true) ||
-                    (exp.description?.contains(searchQuery, ignoreCase = true) == true)
-
-            val matchStatus = when (filterStatus) {
-                "Activos" -> exp.is_active
-                "Inactivos" -> !exp.is_active
-                else -> true
+        list.filter { item ->
+            val matchesStatus = when (selectedStatusFilter) {
+                "ACTIVOS"   -> item.isActive
+                "INACTIVOS" -> !item.isActive
+                else        -> true
             }
-
-            matchQuery && matchStatus
+            val matchesCategory = when (selectedCategoryFilter) {
+                "TODAS" -> true
+                else    -> item.category.equals(selectedCategoryFilter, ignoreCase = true)
+            }
+            matchesStatus && matchesCategory
         }
     }
 
@@ -84,7 +111,7 @@ fun FixedExpensesScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Servicios y Rentas",
+                        "Servicios y Rentas (OpEx)",
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                         fontSize = 18.sp
@@ -101,120 +128,120 @@ fun FixedExpensesScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0F172A))
             )
+        },
+        floatingActionButton = {
+            if (!isAuditorState) {
+                FloatingActionButton(
+                    onClick = { showCreateDialog = true },
+                    containerColor = Color(0xFF10B981),
+                    contentColor = Color.White
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Nuevo Contrato")
+                }
+            }
         }
     ) { padding ->
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = {
-                isRefreshing = true
-                fetchData()
-            },
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(Color(0xFFF8FAFC))
-        ) {
-            if (isLoading && data == null) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Color(0xFF0F172A))
-                }
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // 1. Tarjeta Resumen OpEx (KPIs ejecutivos)
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Color(0xFF10B981))
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                item { Spacer(modifier = Modifier.height(4.dp)) }
+
+                // Banner Auditor
+                if (isAuditorState) {
                     item {
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7)),
+                            shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    text = "GASTO FIJO MENSUAL (OPEX)",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF94A3B8)
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = Color(0xFFD97706),
+                                    modifier = Modifier.size(20.dp)
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "$ ${String.format(locale, "%,.2f", data?.total_monthly_opex ?: 0.0)}",
-                                    fontSize = 26.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFF10B981)
+                                    text = "Modo Auditoría: Consulta de contratos OpEx en solo lectura.",
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF92400E)
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        text = "Contratos: ${data?.active_contracts_count ?: 0} activos",
-                                        fontSize = 12.sp,
-                                        color = Color(0xFFCBD5E1)
-                                    )
-                                    Text(
-                                        text = "Proy. Anual: $ ${String.format(locale, "%,.2f", data?.annual_projection ?: 0.0)}",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = Color(0xFFCBD5E1)
-                                    )
-                                }
                             }
                         }
                     }
+                }
 
-                    // 2. Alertas de Contratos y Pagos Próximos
-                    if (!data?.alerts.isNullOrEmpty()) {
-                        item {
-                            Text(
-                                "ALERTAS DE CONTRATOS",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF94A3B8)
-                            )
+                // Tarjetas de Resumen
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Card(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A))
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Text("OpEx Mensual", fontSize = 11.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    currencyFormat.format(data?.totalMonthlyOpex ?: 0.0),
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color.White
+                                )
+                            }
                         }
-                        items(data!!.alerts) { alert ->
-                            FixedExpenseAlertCard(alert)
+
+                        Card(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            elevation = CardDefaults.cardElevation(2.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Text("Contratos Activos", fontSize = 11.sp, color = Color(0xFF64748B), fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    "${data?.activeContractsCount ?: 0}",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF0F172A)
+                                )
+                            }
                         }
                     }
+                }
 
-                    // 3. Buscador en tiempo real
-                    item {
-                        OutlinedTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            placeholder = { Text("Buscar proveedor, renta o servicio...", fontSize = 13.sp) },
-                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
-                            trailingIcon = {
-                                if (searchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { searchQuery = "" }) {
-                                        Icon(Icons.Default.Clear, contentDescription = "Limpiar", tint = Color.Gray)
-                                    }
-                                }
-                            },
-                            singleLine = true,
-                            shape = RoundedCornerShape(10.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color.White,
-                                focusedBorderColor = Color(0xFF0F172A),
-                                unfocusedBorderColor = Color(0xFFCBD5E1)
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    // 4. Filtro por estatus
-                    item {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf("Activos", "Inactivos", "Todos").forEach { status ->
+                // Barra de Filtros
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Filtro Estatus
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf(
+                                "TODOS" to "Todos (${data?.expenses?.size ?: 0})",
+                                "ACTIVOS" to "Activos (${data?.activeContractsCount ?: 0})",
+                                "INACTIVOS" to "Inactivos (${(data?.expenses?.size ?: 0) - (data?.activeContractsCount ?: 0)})"
+                            ).forEach { (key, label) ->
                                 FilterChip(
-                                    selected = filterStatus == status,
-                                    onClick = { filterStatus = status },
-                                    label = { Text(status, fontSize = 12.sp) },
-                                    shape = RoundedCornerShape(20.dp),
+                                    selected = selectedStatusFilter == key,
+                                    onClick = { selectedStatusFilter = key },
+                                    label = { Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = Color(0xFF0F172A),
                                         selectedLabelColor = Color.White
@@ -222,70 +249,169 @@ fun FixedExpensesScreen(
                                 )
                             }
                         }
-                    }
 
-                    // 5. Listado de contratos/gastos fijos
-                    if (filteredList.isEmpty()) {
-                        item {
-                            Card(
-                                colors = CardDefaults.cardColors(containerColor = Color.White),
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Box(
-                                    modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("No se encontraron gastos fijos.", fontSize = 13.sp, color = Color.Gray)
-                                }
+                        // Filtro Categoría
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf(
+                                "TODAS" to "Todas",
+                                "SERVICIO" to "Servicios",
+                                "RENTA" to "Rentas",
+                                "SEGURO" to "Seguros",
+                                "OTRO" to "Otros"
+                            ).forEach { (catKey, catLabel) ->
+                                FilterChip(
+                                    selected = selectedCategoryFilter == catKey,
+                                    onClick = { selectedCategoryFilter = catKey },
+                                    label = { Text(catLabel, fontSize = 11.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = Color(0xFF10B981),
+                                        selectedLabelColor = Color.White
+                                    )
+                                )
                             }
-                        }
-                    } else {
-                        items(filteredList) { item ->
-                            FixedExpenseCardItem(item, locale)
                         }
                     }
                 }
+
+                // Lista de Contratos
+                if (filteredExpenses.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("No hay contratos con los filtros seleccionados", color = Color(0xFF94A3B8), fontSize = 13.sp)
+                        }
+                    }
+                } else {
+                    items(filteredExpenses) { item ->
+                        ExpenseCard(
+                            expense = item,
+                            isAuditor = isAuditorState,
+                            onEdit = { expenseToEdit = item },
+                            onToggle = { expenseToToggle = item }
+                        )
+                    }
+                }
+
+                item { Spacer(modifier = Modifier.height(60.dp)) }
             }
         }
+    }
+
+    // Modal: Crear Contrato
+    if (showCreateDialog) {
+        ExpenseFormDialog(
+            title = "Nuevo Contrato OpEx",
+            initialExpense = null,
+            onDismiss = { showCreateDialog = false },
+            onSubmit = { newContract ->
+                coroutineScope.launch {
+                    val authToken = if (token.isNotBlank()) token else sessionManager?.authToken?.firstOrNull() ?: return@launch
+                    val res = apiService.createFixedExpense("Bearer $authToken", newContract)
+                    if (res.isSuccessful) {
+                        Toast.makeText(context, "Contrato registrado con éxito", Toast.LENGTH_SHORT).show()
+                        showCreateDialog = false
+                        loadData()
+                    } else {
+                        Toast.makeText(context, "Error al registrar contrato", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        )
+    }
+
+    // Modal: Editar Contrato
+    if (expenseToEdit != null) {
+        ExpenseFormDialog(
+            title = "Editar Contrato",
+            initialExpense = expenseToEdit,
+            onDismiss = { expenseToEdit = null },
+            onSubmit = { updatedContract ->
+                coroutineScope.launch {
+                    val authToken = if (token.isNotBlank()) token else sessionManager?.authToken?.firstOrNull() ?: return@launch
+                    val res = apiService.updateFixedExpense("Bearer $authToken", expenseToEdit!!.id, updatedContract)
+                    if (res.isSuccessful) {
+                        Toast.makeText(context, "Contrato actualizado", Toast.LENGTH_SHORT).show()
+                        expenseToEdit = null
+                        loadData()
+                    } else {
+                        Toast.makeText(context, "Error al actualizar contrato", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        )
+    }
+
+    // Diálogo de Confirmación: Dar de Baja / Reactivar
+    if (expenseToToggle != null) {
+        val target = expenseToToggle!!
+        val confirmColor = if (target.isActive) Color(0xFFEF4444) else Color(0xFF10B981)
+
+        AlertDialog(
+            onDismissRequest = { expenseToToggle = null },
+            title = {
+                Text(
+                    text = if (target.isActive) "¿Dar de baja este contrato?" else "¿Reactivar contrato?",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+            },
+            text = {
+                Text(
+                    text = if (target.isActive) {
+                        "¿Estás seguro de dar de baja el contrato de \"${target.providerName}\"? Dejará de sumar al total mensual de OpEx."
+                    } else {
+                        "¿Deseas reactivar el contrato de \"${target.providerName}\"? Volverá a sumar a las proyecciones mensuales."
+                    },
+                    fontSize = 13.sp,
+                    color = Color(0xFF475569)
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            val authToken = if (token.isNotBlank()) token else sessionManager?.authToken?.firstOrNull() ?: return@launch
+                            val res = apiService.toggleFixedExpense("Bearer $authToken", target.id)
+                            if (res.isSuccessful) {
+                                Toast.makeText(context, res.body()?.message ?: "Estado actualizado", Toast.LENGTH_SHORT).show()
+                                expenseToToggle = null
+                                loadData()
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = confirmColor)
+                ) {
+                    Text(if (target.isActive) "Sí, dar de baja" else "Sí, reactivar", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { expenseToToggle = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
 
 @Composable
-fun FixedExpenseAlertCard(alert: FixedExpenseAlert) {
-    val (bgColor, iconColor, textColor) = when (alert.type) {
-        "danger" -> Triple(Color(0xFFFEF2F2), Color(0xFFDC2626), Color(0xFF991B1B))
-        "warning" -> Triple(Color(0xFFFFFBEB), Color(0xFFD97706), Color(0xFF92400E))
-        else -> Triple(Color(0xFFEFF6FF), Color(0xFF2563EB), Color(0xFF1E40AF))
-    }
+fun ExpenseCard(
+    expense: FixedExpenseItem,
+    isAuditor: Boolean,
+    onEdit: () -> Unit,
+    onToggle: () -> Unit
+) {
+    val currencyFormat = NumberFormat.getCurrencyInstance(Locale("es", "MX"))
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = bgColor),
         shape = RoundedCornerShape(10.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
-            Icon(
-                imageVector = if (alert.type == "info") Icons.Default.Info else Icons.Default.Warning,
-                contentDescription = null,
-                tint = iconColor,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Column {
-                Text(alert.title, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = textColor)
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(alert.message, fontSize = 11.sp, color = textColor)
-            }
-        }
-    }
-}
-
-@Composable
-fun FixedExpenseCardItem(item: FixedExpenseModel, locale: Locale) {
-    Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(10.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -293,66 +419,196 @@ fun FixedExpenseCardItem(item: FixedExpenseModel, locale: Locale) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
                 Column(modifier = Modifier.weight(1f)) {
+                    Text(expense.providerName, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0F172A))
+                    if (!expense.description.isNullOrBlank()) {
+                        Text(expense.description, fontSize = 12.sp, color = Color(0xFF64748B))
+                    }
+                }
+
+                Surface(
+                    color = if (expense.isActive) Color(0xFFD1FAE5) else Color(0xFFFEE2E2),
+                    shape = RoundedCornerShape(4.dp)
+                ) {
                     Text(
-                        text = item.provider_name,
+                        text = if (expense.isActive) "ACTIVO" else "INACTIVO",
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = Color(0xFF0F172A),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = item.category,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF64748B)
+                        color = if (expense.isActive) Color(0xFF047857) else Color(0xFFB91C1C)
                     )
                 }
-                Text(
-                    text = "$ ${String.format(locale, "%,.2f", item.monthly_amount)}",
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 15.sp,
-                    color = Color(0xFF0F172A)
-                )
             }
 
-            if (!item.description.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = item.description,
-                    fontSize = 12.sp,
-                    color = Color(0xFF475569),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-            HorizontalDivider(color = Color(0xFFF1F5F9))
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Bottom
             ) {
-                Text(
-                    text = "Día de pago: ${item.due_day} de cada mes",
-                    fontSize = 11.sp,
-                    color = Color(0xFF64748B)
-                )
-                if (item.contract_end_date != null) {
+                Column {
                     Text(
-                        text = "Vence: ${item.contract_end_date}",
+                        text = "${expense.category} · Pago el día ${expense.dueDay}",
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFF475569)
+                        color = Color(0xFF94A3B8),
+                        fontWeight = FontWeight.Medium
                     )
+                    Text(
+                        text = currencyFormat.format(expense.monthlyAmount),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFF0F172A)
+                    )
+                }
+
+                // Acciones de Gestión (Solo Administrador)
+                if (!isAuditor) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFF64748B), modifier = Modifier.size(18.dp))
+                        }
+
+                        TextButton(
+                            onClick = onToggle,
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = if (expense.isActive) "Dar de baja" else "Reactivar",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (expense.isActive) Color(0xFFEF4444) else Color(0xFF10B981)
+                            )
+                        }
+                    }
                 }
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ExpenseFormDialog(
+    title: String,
+    initialExpense: FixedExpenseItem?,
+    onDismiss: () -> Unit,
+    onSubmit: (FixedExpenseCreateRequest) -> Unit
+) {
+    val categories = listOf(
+        "SERVICIO" to "Servicios (Agua, Luz, Internet)",
+        "RENTA"    to "Renta de Inmuebles / Oficinas",
+        "SEGURO"   to "Seguros y Pólizas",
+        "OTRO"     to "Otro / Licencias"
+    )
+
+    var providerName by remember { mutableStateOf(initialExpense?.providerName ?: "") }
+    var description by remember { mutableStateOf(initialExpense?.description ?: "") }
+    var selectedCategoryCode by remember { mutableStateOf(initialExpense?.category ?: "SERVICIO") }
+    var selectedCategoryLabel by remember {
+        mutableStateOf(categories.find { it.first.equals(initialExpense?.category ?: "SERVICIO", ignoreCase = true) }?.second ?: "Servicios (Agua, Luz, Internet)")
+    }
+    var monthlyAmount by remember { mutableStateOf(initialExpense?.monthlyAmount?.toString() ?: "") }
+    var dueDay by remember { mutableStateOf(initialExpense?.dueDay?.toString() ?: "15") }
+    var expandedDropdown by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = providerName,
+                    onValueChange = { providerName = it },
+                    label = { Text("Proveedor / Empresa") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = monthlyAmount,
+                    onValueChange = { monthlyAmount = it },
+                    label = { Text("Monto Mensual ($)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = dueDay,
+                    onValueChange = { dueDay = it },
+                    label = { Text("Día de Pago (1-31)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                ExposedDropdownMenuBox(
+                    expanded = expandedDropdown,
+                    onExpandedChange = { expandedDropdown = !expandedDropdown }
+                ) {
+                    OutlinedTextField(
+                        value = selectedCategoryLabel,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Categoría") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDropdown) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedDropdown,
+                        onDismissRequest = { expandedDropdown = false }
+                    ) {
+                        categories.forEach { (code, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    selectedCategoryCode = code
+                                    selectedCategoryLabel = label
+                                    expandedDropdown = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Notas o descripción (opcional)") },
+                    maxLines = 2,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val amount = monthlyAmount.toDoubleOrNull() ?: 0.0
+                    val day = dueDay.toIntOrNull() ?: 1
+                    if (providerName.isNotBlank() && amount > 0.0) {
+                        onSubmit(
+                            FixedExpenseCreateRequest(
+                                providerName = providerName.trim(),
+                                description = description.trim().ifBlank { null },
+                                category = selectedCategoryCode,
+                                monthlyAmount = amount,
+                                dueDay = day
+                            )
+                        )
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+            ) {
+                Text(if (initialExpense == null) "Guardar Contrato" else "Actualizar", color = Color.White)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
 }

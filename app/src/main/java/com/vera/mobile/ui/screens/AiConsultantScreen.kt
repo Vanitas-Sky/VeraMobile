@@ -1,17 +1,19 @@
 package com.vera.mobile.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vera.mobile.data.remote.AiAskRequest
+import com.vera.mobile.data.remote.AiHistoryItem
 import com.vera.mobile.data.remote.RetrofitClient
 import com.vera.mobile.ui.components.MarkdownText
 import kotlinx.coroutines.launch
@@ -43,14 +46,61 @@ fun AiConsultantScreen(
     var inputText by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
 
+    val initialGreeting = "¡Hola! Soy Vera AI, tu consultor fiscal y financiero. Puedes consultarme dudas sobre el balance del mes, gastos deducibles, contratos OpEx o nómina de colaboradores."
+
     val messages = remember {
         mutableStateListOf(
-            ChatMessage(
-                text = "¡Hola! Soy Vera AI, tu consultor fiscal y financiero. Puedes consultarme dudas sobre tus ventas del mes, gastos deducibles o el costo de nómina de cualquier colaborador.",
-                isUser = false,
-                time = "Ahora"
-            )
+            ChatMessage(text = initialGreeting, isUser = false, time = "Ahora")
         )
+    }
+
+    val quickSuggestions = listOf(
+        "🟡 Auditoría de deducibilidad",
+        "📊 Balance financiero del mes",
+        "🏢 Resumen de contratos OpEx",
+        "👥 Costo de plantilla y nómina"
+    )
+
+    fun sendQuestion(question: String) {
+        val trimmed = question.trim()
+        if (trimmed.isBlank() || isLoading) return
+
+        // Tomar los últimos 10 mensajes previos para memoria conversacional
+        val historyPayload = messages.map { msg ->
+            AiHistoryItem(
+                role = if (msg.isUser) "user" else "assistant",
+                content = msg.text
+            )
+        }.takeLast(10)
+
+        messages.add(ChatMessage(text = trimmed, isUser = true, time = "Ahora"))
+        inputText = ""
+        isLoading = true
+
+        coroutineScope.launch {
+            if (messages.isNotEmpty()) {
+                listState.animateScrollToItem(messages.size - 1)
+            }
+            try {
+                val req = AiAskRequest(question = trimmed, history = historyPayload)
+                val res = RetrofitClient.apiService.askAi("Bearer $token", req)
+                if (res.isSuccessful && res.body()?.success == true) {
+                    val reply = res.body()?.answer ?: "No obtuve respuesta del asistente."
+                    val time = res.body()?.timestamp ?: ""
+                    messages.add(ChatMessage(text = reply, isUser = false, time = time))
+                } else {
+                    val errorMsg = res.body()?.error ?: "No fue posible procesar la consulta."
+                    messages.add(ChatMessage(text = "⚠️ $errorMsg", isUser = false))
+                }
+            } catch (e: Exception) {
+                messages.add(ChatMessage(text = "⚠️ Error de conexión con el servicio de IA.", isUser = false))
+            } finally {
+                isLoading = false
+                if (messages.isNotEmpty()) {
+                    listState.animateScrollToItem(messages.size - 1)
+                }
+            }
+        }
     }
 
     Scaffold(
@@ -75,13 +125,21 @@ fun AiConsultantScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text("Consultor Vera AI", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                            Text("En línea • Análisis en tiempo real", fontSize = 11.sp, color = Color(0xFF94A3B8))
+                            Text("En línea • Análisis fiscal y contable", fontSize = 11.sp, color = Color(0xFF94A3B8))
                         }
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        messages.clear()
+                        messages.add(ChatMessage(text = initialGreeting, isUser = false, time = "Ahora"))
+                    }) {
+                        Icon(Icons.Default.DeleteSweep, contentDescription = "Limpiar Chat", tint = Color(0xFF94A3B8))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0F172A))
@@ -94,7 +152,7 @@ fun AiConsultantScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Lista de Mensajes
+            // Conversación
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -120,7 +178,7 @@ fun AiConsultantScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                "Vera AI está consultando tus registros...",
+                                "Vera AI está analizando tus registros...",
                                 fontSize = 12.sp,
                                 color = Color(0xFF64748B)
                             )
@@ -129,7 +187,31 @@ fun AiConsultantScreen(
                 }
             }
 
-            // Barra Inferior de Entrada
+            // Barra de Sugerencias Rápidas
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                quickSuggestions.forEach { suggestion ->
+                    SuggestionChip(
+                        onClick = { sendQuestion(suggestion) },
+                        label = { Text(suggestion, fontSize = 11.sp, fontWeight = FontWeight.Medium) },
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = Color.White,
+                            labelColor = Color(0xFF0F172A)
+                        ),
+                        border = SuggestionChipDefaults.suggestionChipBorder(
+                            enabled = true,
+                            borderColor = Color(0xFFE2E8F0)
+                        )
+                    )
+                }
+            }
+
+            // Entrada de texto
             Surface(
                 color = Color.White,
                 shadowElevation = 4.dp,
@@ -144,7 +226,7 @@ fun AiConsultantScreen(
                     OutlinedTextField(
                         value = inputText,
                         onValueChange = { inputText = it },
-                        placeholder = { Text("Pregunta sobre nómina, facturas o SAT...", fontSize = 13.sp) },
+                        placeholder = { Text("Pregunta sobre deducciones, nómina o gastos...", fontSize = 13.sp) },
                         shape = RoundedCornerShape(24.dp),
                         modifier = Modifier
                             .weight(1f)
@@ -157,34 +239,7 @@ fun AiConsultantScreen(
                     )
 
                     IconButton(
-                        onClick = {
-                            val questionToSend = inputText.trim()
-                            if (questionToSend.isNotBlank() && !isLoading) {
-                                messages.add(ChatMessage(text = questionToSend, isUser = true, time = "Ahora"))
-                                inputText = ""
-                                isLoading = true
-
-                                coroutineScope.launch {
-                                    listState.animateScrollToItem(messages.size - 1)
-                                    try {
-                                        val res = RetrofitClient.apiService.askAi("Bearer $token", AiAskRequest(questionToSend))
-                                        if (res.isSuccessful && res.body()?.success == true) {
-                                            val reply = res.body()?.answer ?: "No obtuve respuesta."
-                                            val time = res.body()?.timestamp ?: ""
-                                            messages.add(ChatMessage(text = reply, isUser = false, time = time))
-                                        } else {
-                                            val errorMsg = res.body()?.error ?: "Error al conectar con Vera AI."
-                                            messages.add(ChatMessage(text = "⚠️ $errorMsg", isUser = false))
-                                        }
-                                    } catch (e: Exception) {
-                                        messages.add(ChatMessage(text = "⚠️ Error de red al contactar al asistente.", isUser = false))
-                                    } finally {
-                                        isLoading = false
-                                        listState.animateScrollToItem(messages.size - 1)
-                                    }
-                                }
-                            }
-                        },
+                        onClick = { sendQuestion(inputText) },
                         enabled = inputText.isNotBlank() && !isLoading,
                         colors = IconButtonDefaults.iconButtonColors(
                             containerColor = Color(0xFF0F172A),
@@ -220,17 +275,27 @@ fun ChatBubble(message: ChatMessage) {
             ),
             color = if (message.isUser) Color(0xFF0F172A) else Color.White,
             modifier = Modifier
-                .widthIn(max = 300.dp)
+                .widthIn(max = 320.dp)
                 .then(
                     if (!message.isUser) Modifier.border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(14.dp))
                     else Modifier
                 )
         ) {
-            MarkdownText(
-                text = message.text,
-                color = if (message.isUser) Color.White else Color(0xFF1E293B),
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
-            )
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                MarkdownText(
+                    text = message.text,
+                    color = if (message.isUser) Color.White else Color(0xFF1E293B)
+                )
+                if (message.time.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = message.time,
+                        fontSize = 10.sp,
+                        color = if (message.isUser) Color(0xFF94A3B8) else Color(0xFF64748B),
+                        modifier = Modifier.align(Alignment.End)
+                    )
+                }
+            }
         }
     }
 }

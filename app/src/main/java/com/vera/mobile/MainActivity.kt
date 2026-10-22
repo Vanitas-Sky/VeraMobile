@@ -75,11 +75,13 @@ class MainActivity : ComponentActivity() {
                     }
                     else -> {
                         val token = tokenState!!
+                        val isAuditorState by sessionManager.isAuditor.collectAsState(initial = false)
                         MainScaffoldScreen(
                             token = token,
                             homeViewModel = homeViewModel,
                             payrollViewModel = payrollViewModel,
                             employeeViewModel = employeeViewModel,
+                            isAuditor = isAuditorState,
                             onLogout = {
                                 loginViewModel.logout {
                                     // El cambio en tokenState gatillará la UI de Login automáticamente
