@@ -1,7 +1,13 @@
 package com.vera.mobile.data.remote
 
 data class AiAskRequest(
-    val question: String
+    val question: String,
+    val history: List<AiHistoryItem>? = null
+)
+
+data class AiHistoryItem(
+    val role: String, // "user" o "assistant"
+    val content: String
 )
 
 data class AiAskResponse(

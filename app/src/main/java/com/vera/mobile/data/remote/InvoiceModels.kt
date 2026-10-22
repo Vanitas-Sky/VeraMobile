@@ -1,13 +1,14 @@
 package com.vera.mobile.data.remote
 
-import android.accessibilityservice.GestureDescription
-
 data class InvoicesResponse(
     val total_amount: Double,
     val total_iva: Double,
     val count: Int,
     val invoices: List<InvoiceItem>
-)
+) {
+    val totalAmount: Double get() = total_amount
+    val totalIva: Double get() = total_iva
+}
 
 data class InvoiceItem(
     val id: Int,
@@ -19,8 +20,15 @@ data class InvoiceItem(
     val iva: Double,
     val subtotal: Double,
     val issue_date: String,
-    val is_canceled: Boolean
-)
+    val is_canceled: Boolean,
+    val deducibility_status: String? = null
+) {
+    val partnerName: String get() = partner_name
+    val partnerRfc: String? get() = partner_rfc
+    val issueDate: String get() = issue_date
+    val isCanceled: Boolean get() = is_canceled
+    val deducibilityStatus: String? get() = deducibility_status
+}
 
 data class InvoiceDetailResponse(
     val id: Int,
@@ -34,13 +42,30 @@ data class InvoiceDetailResponse(
     val issue_date: String,
     val payment_method: String?,
     val payment_form: String?,
+    val deducibility_status: String? = null,
+    val deducibility_reason: String? = null,
     val items: List<InvoiceItemConcept> = emptyList()
-)
+) {
+    val partnerName: String get() = partner_name
+    val partnerRfc: String? get() = partner_rfc
+    val issueDate: String get() = issue_date
+    val paymentMethod: String? get() = payment_method
+    val paymentForm: String? get() = payment_form
+    val deducibilityStatus: String? get() = deducibility_status
+    val deducibilityReason: String? get() = deducibility_reason
+}
 
 data class InvoiceItemConcept(
     val description: String?,
     val cantidad: Double?,
     val valor_unitario: Double?,
     val importe: Double?,
-    val clave_prod_serv: String?
-)
+    val clave_prod_serv: String?,
+    val deducibility_status: String? = null,
+    val deducibility_reason: String? = null
+) {
+    val valorUnitario: Double? get() = valor_unitario
+    val claveProdServ: String? get() = clave_prod_serv
+    val deducibilityStatus: String? get() = deducibility_status
+    val deducibilityReason: String? get() = deducibility_reason
+}

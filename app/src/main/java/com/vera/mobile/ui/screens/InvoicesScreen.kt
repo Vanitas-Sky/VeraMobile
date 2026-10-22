@@ -302,11 +302,46 @@ fun InvoiceDetailCard(inv: InvoiceItem, locale: Locale, onClick: () -> Unit) {
                     fontSize = 11.sp,
                     color = Color(0xFF64748B)
                 )
-                Text(
-                    text = "Folio: ${inv.uuid?.take(8) ?: "N/D"}...",
-                    fontSize = 10.sp,
-                    color = Color(0xFF94A3B8)
-                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    // Tipo (Ingreso / Egreso)
+                    Surface(
+                        color = if (isIngreso) Color(0xFFD1FAE5) else Color(0xFFFEF3C7),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = if (isIngreso) "Ingreso" else "Egreso",
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isIngreso) Color(0xFF065F46) else Color(0xFF92400E)
+                        )
+                    }
+
+                    // Píldora Semáforo de Deducibilidad (Solo en Egresos)
+                    if (!isIngreso && inv.deducibilityStatus != null) {
+                        val (bgStatus, textStatus, labelStatus) = when (inv.deducibilityStatus) {
+                            "ROJO" -> Triple(Color(0xFFFEE2E2), Color(0xFF991B1B), "No Deducible")
+                            "AMARILLO" -> Triple(Color(0xFFFEF3C7), Color(0xFF92400E), "Riesgo")
+                            else -> Triple(Color(0xFFECFDF5), Color(0xFF047857), "Deducible")
+                        }
+                        Surface(
+                            color = bgStatus,
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = labelStatus,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = textStatus
+                            )
+                        }
+                    }
+                }
             }
             Spacer(modifier = Modifier.width(8.dp))
             Surface(
