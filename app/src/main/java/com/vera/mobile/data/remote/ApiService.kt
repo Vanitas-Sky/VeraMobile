@@ -10,11 +10,19 @@ interface ApiService {
     @POST("login")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
+    @POST("register")
+    suspend fun register(@Body request: RegisterRequest): Response<LoginResponse>
+
     @POST("forgot-password")
     suspend fun forgotPassword(@Body request: ForgotPasswordRequest): Response<AuthActionResponse>
 
     @POST("reset-password")
     suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<AuthActionResponse>
+
+    @POST("terms/accept")
+    suspend fun acceptTerms(
+        @Header("Authorization") token: String
+    ): Response<AuthActionResponse>
 
     @POST("logout")
     suspend fun logout(@Header("Authorization") token: String): Response<Map<String, String>>
@@ -110,4 +118,22 @@ interface ApiService {
     suspend fun getCompanyProfile(
         @Header("Authorization") token: String
     ): Response<ProfileResponse>
+
+    // --- GESTIÓN DE AUDITORES ---
+    @GET("auditors")
+    suspend fun getAuditors(
+        @Header("Authorization") token: String
+    ): Response<AuditorsResponse>
+
+    @POST("auditors")
+    suspend fun createAuditor(
+        @Header("Authorization") token: String,
+        @Body request: CreateAuditorRequest
+    ): Response<AuthActionResponse>
+
+    @DELETE("auditors/{id}")
+    suspend fun deleteAuditor(
+        @Header("Authorization") token: String,
+        @Path("id") id: Long
+    ): Response<AuthActionResponse>
 }

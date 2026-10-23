@@ -27,7 +27,8 @@ import com.vera.mobile.data.remote.RetrofitClient
 fun ProfileScreen(
     token: String,
     onBack: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onNavigateToAuditors: (() -> Unit)? = null
 ) {
     var profileData by remember { mutableStateOf<ProfileResponse?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -130,6 +131,34 @@ fun ProfileScreen(
                                 Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("${p.server_status} (${p.api_version})", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF047857))
+                            }
+                        }
+                    }
+                }
+
+                // Tarjeta 3: Gestión de Auditores
+                if (onNavigateToAuditors != null) {
+                    Text("CONTROL DE ACCESOS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8), letterSpacing = 1.sp)
+                    Card(
+                        onClick = onNavigateToAuditors,
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(shape = CircleShape, color = Color(0xFFECFDF5), modifier = Modifier.size(40.dp)) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF059669), modifier = Modifier.size(20.dp))
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("Gestión de Auditores Externos", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                                Text("Dar de alta o revocar accesos de lectura", fontSize = 12.sp, color = Color(0xFF64748B))
                             }
                         }
                     }

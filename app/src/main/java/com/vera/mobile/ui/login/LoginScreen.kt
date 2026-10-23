@@ -1,5 +1,6 @@
 package com.vera.mobile.ui.login
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -23,17 +25,23 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vera.mobile.R
+import com.vera.mobile.data.local.SessionManager
 import com.vera.mobile.data.remote.ApiService
 import com.vera.mobile.data.remote.RetrofitClient
 import com.vera.mobile.ui.components.ForgotPasswordDialog
+import com.vera.mobile.ui.components.TermsAcceptanceModal
 import com.vera.mobile.ui.theme.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel,
     onLoginSuccess: () -> Unit,
-    apiService: ApiService = RetrofitClient.apiService
+    apiService: ApiService = RetrofitClient.apiService,
+    sessionManager: SessionManager? = null
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -210,10 +218,35 @@ fun LoginScreen(
         )
     }
 
-    // Efecto de Navegación
+    // Efecto de Navegación y Verificación de Términos
     if (loginState is AuthUiState.Success) {
-        LaunchedEffect(Unit) {
-            onLoginSuccess()
+        val successData = (loginState as AuthUiState.Success).data
+        val userTermsAccepted = successData.user?.termsAccepted ?: false
+
+        if (!userTermsAccepted) {
+            TermsAcceptanceModal(
+                token = successData.token,
+                apiService = apiService,
+                baseUrl = "https://vera.sarl",
+                onAccepted = {
+                    coroutineScope.launch {
+                        sessionManager?.saveSession(
+                            token = successData.token,
+                            role = successData.user?.role,
+                            isAuditorUser = successData.user?.isAuditor ?: false
+                        )
+                        onLoginSuccess()
+                    }
+                },
+                onDeclined = {
+                    viewModel.resetLoginState()
+                    Toast.makeText(context, "Debes aceptar los términos para usar la aplicación", Toast.LENGTH_LONG).show()
+                }
+            )
+        } else {
+            LaunchedEffect(Unit) {
+                onLoginSuccess()
+            }
         }
     }
 }

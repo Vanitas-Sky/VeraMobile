@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
 
     // Reemplaza con tu dominio exacto de Ngrok
-    private const val BASE_URL = "https://rosy-refold-denture.ngrok-free.dev/api/v1/"
+    private const val BASE_URL = "https://vera.sarl/api/v1/"
 
     private val authErrorInterceptor = Interceptor { chain ->
         val request = chain.request()

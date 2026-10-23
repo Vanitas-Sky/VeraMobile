@@ -6,6 +6,7 @@ import com.vera.mobile.data.remote.ForgotPasswordRequest
 import com.vera.mobile.data.remote.GenericApiResponse
 import com.vera.mobile.data.remote.LoginRequest
 import com.vera.mobile.data.remote.LoginResponse
+import com.vera.mobile.data.remote.RegisterRequest
 import com.vera.mobile.data.remote.ResetPasswordRequest
 import kotlinx.coroutines.flow.firstOrNull
 import org.json.JSONObject
@@ -27,18 +28,60 @@ class AuthRepository(
                 val token = body.token
                 val userRole = body.user?.role
                 val isAuditor = body.user?.isAuditor ?: (userRole == "AUDITOR_EXTERNO")
+                val termsAccepted = body.user?.termsAccepted ?: false
 
-                // Guardado atómico en DataStore (Token + Rol + Bandera Auditor)
-                sessionManager.saveSession(
-                    token = token,
-                    role = userRole,
-                    isAuditorUser = isAuditor
-                )
+                // Solo guardamos la sesión en DataStore si ya aceptó los términos.
+                // Si no los ha aceptado, el modal en LoginScreen solicitará la aceptación
+                // antes de persistir la sesión.
+                if (termsAccepted) {
+                    sessionManager.saveSession(
+                        token = token,
+                        role = userRole,
+                        isAuditorUser = isAuditor
+                    )
+                }
 
                 Result.success(body)
             } else {
                 val errorMsg = parseErrorMessage(response.errorBody()?.string())
                     ?: "Credenciales incorrectas o servidor no disponible."
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Error de conexión: ${e.localizedMessage ?: "Revisa tu red"}"))
+        }
+    }
+
+    /**
+     * Registra una nueva cuenta de usuario.
+     */
+    suspend fun register(
+        name: String,
+        email: String,
+        pass: String,
+        confirmPass: String,
+        terms: Boolean
+    ): Result<LoginResponse> {
+        return try {
+            val req = RegisterRequest(
+                name = name,
+                email = email,
+                password = pass,
+                passwordConfirmation = confirmPass,
+                terms = terms
+            )
+            val response = apiService.register(req)
+            if (response.isSuccessful && response.body() != null) {
+                val body = response.body()!!
+                sessionManager.saveSession(
+                    token = body.token,
+                    role = body.user?.role,
+                    isAuditorUser = body.user?.isAuditor ?: false
+                )
+                Result.success(body)
+            } else {
+                val errorMsg = parseErrorMessage(response.errorBody()?.string())
+                    ?: "No se pudo registrar la cuenta."
                 Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
