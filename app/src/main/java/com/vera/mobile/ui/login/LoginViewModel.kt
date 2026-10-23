@@ -65,6 +65,35 @@ class LoginViewModel(
     }
 
     /**
+     * Ejecuta el registro de un nuevo usuario.
+     */
+    fun register(name: String, email: String, pass: String, confirmPass: String, terms: Boolean) {
+        if (name.isBlank() || email.isBlank() || pass.isBlank()) {
+            _loginState.value = AuthUiState.Error("Por favor completa todos los campos.")
+            return
+        }
+
+        if (!terms) {
+            _loginState.value = AuthUiState.Error("Debes aceptar los Términos y Condiciones.")
+            return
+        }
+
+        viewModelScope.launch {
+            _loginState.value = AuthUiState.Loading
+            val result = authRepository.register(name.trim(), email.trim(), pass, confirmPass, terms)
+            result.fold(
+                onSuccess = { response ->
+                    _loginState.value = AuthUiState.Success(response)
+                    _navigationEvent.tryEmit("home")
+                },
+                onFailure = { error ->
+                    _loginState.value = AuthUiState.Error(error.message ?: "Error al registrar la cuenta")
+                }
+            )
+        }
+    }
+
+    /**
      * Dispara la solicitud de token al correo.
      */
     fun sendPasswordReset(email: String) {
@@ -125,6 +154,10 @@ class LoginViewModel(
 
     fun resetPasswordState() {
         _passwordResetState.value = PasswordResetState.Idle
+    }
+
+    fun resetLoginState() {
+        _loginState.value = AuthUiState.Idle
     }
 
     fun clearLoginError() {

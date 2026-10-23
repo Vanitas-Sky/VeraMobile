@@ -63,6 +63,7 @@ class MainActivity : ComponentActivity() {
                     null -> {
                         LoginScreen(
                             viewModel = loginViewModel,
+                            sessionManager = sessionManager,
                             onLoginSuccess = {
                                 val calendar = java.util.Calendar.getInstance()
                                 val monthFormatted = (calendar.get(java.util.Calendar.MONTH) + 1).toString().padStart(2, '0')

@@ -65,7 +65,14 @@ fun MainScaffoldScreen(
             ProfileScreen(
                 token = token,
                 onBack = { currentSecondaryScreen = null },
-                onLogout = onLogout
+                onLogout = onLogout,
+                onNavigateToAuditors = if (!isAuditor) { { currentSecondaryScreen = "auditors_management" } } else null
+            )
+        }
+        "auditors_management" -> {
+            AuditorsScreen(
+                token = token,
+                onBack = { currentSecondaryScreen = null }
             )
         }
         "fixed_expenses" -> {
