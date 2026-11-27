@@ -227,7 +227,6 @@ fun LoginScreen(
             TermsAcceptanceModal(
                 token = successData.token,
                 apiService = apiService,
-                baseUrl = "https://vera.sarl",
                 onAccepted = {
                     coroutineScope.launch {
                         sessionManager?.saveSession(
